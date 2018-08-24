@@ -29,7 +29,7 @@
         // get 请求  会显示在url里 
         call_request_get:function(ajax_method, url, callback) { //（ 请求方式，  请求的url，  请求成功后的处理函数 ）
                 $.ajax({
-                    type:ajax_method,
+                    type:"get",
                     url:url,
                     async:true,
                     //timeout:300,
@@ -47,7 +47,7 @@
         // post 请求 ，适合前端 往后台 传信息量多的东西
         call_request_post:function(ajax_method, url, data, callback){
             $.ajax({
-                type: ajax_method,
+                type: "post",
                 url: url,
                 async:true,
                 //timeout:300,
