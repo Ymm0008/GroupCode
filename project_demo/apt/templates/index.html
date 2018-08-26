@@ -7,11 +7,9 @@
 </head>
 <body>
 <!--提交微博id的表单-->
-<!--test-->
 <div>
     <input type="text" name="uid" class="search" placeholder="微博用户ID">
     <input type="button" class="submit" value="返回数据">
-
     <button id="post_btn">发送post请求</button>
 </div>
 <div id="box">
@@ -24,46 +22,26 @@
 <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
 <script>
     // # uid： 2286908003
-    //localhost IP 
 	//封装的ajax请求的方法
-    var public_ajax={
-        // get 请求  会显示在url里 
-        call_request_get:function(ajax_method, url, callback) { //（ 请求方式，  请求的url，  请求成功后的处理函数 ）
-                $.ajax({
-                    type:"get",
-                    url:url,
-                    async:true,
-                    //timeout:300,
-                    dataType:"json",
-                    success:callback,
-                    error:function (xhr, textStatus, errorThrown) {
-                        //请求失败执行的函数
-                        console.log("请求失败",textStatus,errorThrown);
-                    },
-
-                    global:false//是否触发全局请求,需要触发就是true,不需要false
-                });
+    function public_ajax(ajax_method, url, callback, data) {
+        var requestObj={
+            type:ajax_method,
+            url:url,
+            async:true,
+            dataType:"json",
+            success:callback,
+            error:function (xhr, textStatus, errorThrown) {
+                //请求失败执行的函数
+                console.log("请求失败",textStatus,errorThrown);
             },
-
-        // post 请求 ，适合前端 往后台 传信息量多的东西
-        call_request_post:function(ajax_method, url, data, callback){
-            $.ajax({
-                type: "post",
-                url: url,
-                async:true,
-                //timeout:300,
-                data: JSON.stringify(data),//传参数
-                contentType:'application/json',
-                dataType:"json",
-                success:callback,
-                error:function (xhr, textStatus, errorThrown) {
-                    //请求失败执行的函数
-                    console.log("请求失败",textStatus,errorThrown);
-                },
-                global:false//是否触发全局请求,需要触发就是true,不需要false
-            });
+            global:false//是否触发全局请求,需要触发就是true,不需要false
+        };
+        if (ajax_method=='post'){
+            requestObj['data']= JSON.stringify(data);
+            requestObj['contentType']='application/json';
         }
-    };
+        $.ajax(requestObj);
+    }
 	
 	$('#box img').hide();
 	// 点击调用
