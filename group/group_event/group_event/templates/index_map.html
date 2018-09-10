@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!--<link rel="stylesheet" type="text/css" href="./static/css/style.css">-->
+    <title>Flask demo</title>
+</head>
+<body>
+<!--提交微博id的表单-->
+<div>
+    <button id="post_btn">地图查询结果</button>
+</div>
+<div id="box">
+    <p class="get"> </p>
+	<p class="post"> </p>
+    <img src="" alt="">
+</div>
+
+
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    // # uid： 2286908003
+
+	//封装的ajax请求的方法
+    var public_ajax={
+        // post 请求 ，适合前端 往后台 传信息量多的东西
+        call_request_post:function(ajax_method, url, data, callback){
+            $.ajax({
+                type: ajax_method,
+                url: url,
+                async: true,
+                //timeout:300,
+                data: JSON.stringify(data),//传参数
+                contentType: 'application/json',
+                dataType: "json",
+                success: callback,
+                error: function (xhr, textStatus, errorThrown) {
+                    //请求失败执行的函数
+                    console.log("请求失败", textStatus, errorThrown);
+                },
+                global: false//是否触发全局请求,需要触发就是true,不需要false
+            });
+        }
+    };
+
+    
+    // post 请求测试  ---------
+    $('#post_btn').on('click',function(){
+        var post_url = '/event/map';   //
+        // 发送的数据
+        var postData = {'content':'港独,国歌,碾压,联盟'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post').html(JSON.stringify(data));
+    }
+
+
+
+</script>
+</body>
+</html>

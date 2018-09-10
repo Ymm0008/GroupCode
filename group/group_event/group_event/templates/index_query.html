@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!--<link rel="stylesheet" type="text/css" href="./static/css/style.css">-->
+    <title>Flask demo</title>
+</head>
+<body>
+<!--提交微博id的表单-->
+<div>
+    <button id="post_btn1">感知查询结果</button>
+	<button id="post_btn2">地图查询结果</button>
+	<button id="post_btn3">新建监测任务</button>
+	<button id="post_btn4">删除监测任务</button>
+    <button id="post_btn5">查询监测任务</button>
+</div>
+<div id="box">
+    <p class="post1"> </p>
+	<p class="post2"> </p>
+	<p class="post3"> </p>
+	<p class="post4"> </p>
+    <p class="post5"> </p>
+    <img src="" alt="">
+</div>
+
+
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    // # uid： 2286908003
+
+	//封装的ajax请求的方法
+    var public_ajax={
+        // post 请求 ，适合前端 往后台 传信息量多的东西
+        call_request_post:function(ajax_method, url, data, callback){
+            $.ajax({
+                type: ajax_method,
+                url: url,
+                async: true,
+                //timeout:300,
+                data: JSON.stringify(data),//传参数
+                contentType: 'application/json',
+                dataType: "json",
+                success: callback,
+                error: function (xhr, textStatus, errorThrown) {
+                    //请求失败执行的函数
+                    console.log("请求失败", textStatus, errorThrown);
+                },
+                global: false//是否触发全局请求,需要触发就是true,不需要false
+            });
+        }
+    };
+
+    
+    // 感知列表  ---------
+    $('#post_btn1').on('click',function(){
+        var post_url = '/event/query';  
+        var postData = {'keywords':'港独,国歌,碾压,联盟','sort':'heat','from_ts':'2018-05-01 14:34','to_ts':'2018-05-27 14:34'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post1').html(JSON.stringify(data));
+    }
+
+	 // 地图交互  ---------
+    $('#post_btn2').on('click',function(){
+        var post_url = '/event/map'; 
+        var postData = {'keywords':'港独,国歌,碾压,联盟','sort':'heat','place':'北京', 'from_ts':'2018-05-01 14:34','to_ts':'2018-05-27 14:34'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post2').html(JSON.stringify(data));
+    }
+
+	 // 创建监测任务  ---------
+    $('#post_btn3').on('click',function(){
+        var post_url = '/event/monitor_insert';  
+        var postData = {'name':'港独','category':'政治,和平','keywords':'闹场,香港,国歌','from_date':'1525156440','to_date':'1527402840'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post3').html(JSON.stringify(data));
+    }
+	
+	// 删除监测任务  ---------
+    $('#post_btn4').on('click',function(){
+        var post_url = '/event/monitor_delete';  
+        var postData = {'id':'港独_1535713424.3'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post4').html(JSON.stringify(data));
+    }
+
+    // 查询监测任务  ---------
+    $('#post_btn5').on('click',function(){
+        var post_url = '/event/monitor_query';  
+        var postData = {'keywords':'港独,国歌,碾压,联盟','page':1,'from_ts':'2018-05-01 14:34','to_ts':'2018-09-27 14:34'}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post5').html(JSON.stringify(data));
+    }
+	
+</script>
+</body>
+</html>
