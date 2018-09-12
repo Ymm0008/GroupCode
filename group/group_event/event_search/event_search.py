@@ -12,8 +12,10 @@ es = Elasticsearch("219.224.134.226:9209",timeout=600)
 reload(sys)
 sys.setdefaultencoding("utf-8")
   
-mod = Flask(__name__)
+# mod = Flask(__name__)
 
+# Blueprint 模块化管理程序路由的功能
+mod = Blueprint('event_search', __name__, url_prefix='/eventSearch')   # url_prefix = '/test'  增加相对路径的前缀
 # Standardize the output format according to the requirements of the web frontend
 # 对输出格式进行标准化输出
 def standard_output(es_result):
@@ -82,7 +84,7 @@ def data_reads(keyword,page_number, page_size):
 
 # Query all event information
 def data_eventlist(page_number, page_size):
-    start_from = (page_number - 1) * page_size
+    start_from = (int(page_number) - 1) * int(page_size)
     query_body = {
         "query": {
             "bool": {
