@@ -7,7 +7,7 @@ import time
 from flask import Blueprint, render_template, Flask,request
 
 from elasticsearch import Elasticsearch
-es = Elasticsearch("219.224.134.226:9209",timeout=600)
+es = Elasticsearch("219.224.134.226:9207",timeout=600)
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -32,9 +32,37 @@ def standard_output(es_result):
 
     return result
 
+# 排序
+def if_sort(query_body,sort_field,sort_order):
+    sort = {
+            "sort" :{
+                sort_field : {"order": sort_order}
+            }
+    }
+
+    result = dict(query_body,**sort)
+    return result
+    
+# 高级搜索
+def query_condition(result1,from_time,to_time,key_geo):
+    result = list()
+    for t, _ in enumerate(result1):
+        timearray = time.strptime(_["timestamp"], "%Y-%m-%d %H:%M:%S")
+        timestamp = float(time.mktime(timearray))
+        if from_time != "" and key_geo != "":
+            if float(from_time) <= timestamp and timestamp <= float(to_time) and  _["geo"].encode("utf-8") == key_geo:
+                result.append(_)
+        elif from_time =='' and key_geo != '':
+            if _["geo"].encode("utf-8") == key_geo:
+                result.append(_)
+        elif from_time != '' and key_geo == '':
+            if float(from_time) <= timestamp and timestamp <= float(to_time):
+                result.append(_)
+    return result
+
 # Query events based on keyword for field("event_title")
-def data_read(keyword,page_number, page_size):
-    start_from = (page_number - 1) * page_size
+def data_read(keyword,page_number, page_size,sort_field,sort_order):
+    start_from = (int(page_number) - 1) * int(page_size)
     query_body = {
         "query": {
             "bool": {
@@ -54,75 +82,42 @@ def data_read(keyword,page_number, page_size):
         "from": start_from,
         "size": page_size
     }
+    if sort_field  != "":
+        query_body = if_sort(query_body,sort_field,sort_order)
+
     es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"]
     result = standard_output(es_result)
 
     return result
 
 
-def data_reads(keyword,page_number, page_size):
-    start_from = (page_number - 1) * page_size
-    query_body = {
-        "query": {
-            "bool": {
-                "must":{
-                    "term": {
-                        "event_title": keyword
-                    }
-                }
-            }
-        },
-        "from": start_from,
-        "size": page_size
-    }
-    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"]
 
-
-    result = standard_output(es_result)
-
-    return result
 
 # Query all event information
-def data_eventlist(page_number, page_size):
+def data_eventlist(page_number, page_size,sort_field,sort_order):
     start_from = (int(page_number) - 1) * int(page_size)
     query_body = {
-        "query": {
-            "bool": {
-                "must": {
-                    "match_all": {}  #match_all默认返回10个
+            "query": {
+                "bool": {
+                    "must": {
+                        "match_all": {}  #match_all默认返回10个
+                    }
                 }
-            }
-        },
-        "from": start_from,
-        "size": page_size
-    }
-    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
-    result = standard_output(es_result)
-
-    return result
-
-def data_eventlist_sort(sort_field,sort_order):
-    query_body = {
-        "query": {
-            "bool": {
-                "must": {
-                    "match_all": {}  #match_all默认返回10个
-                }
-            }
-        },
-        "size" : 50,
-         "sort" :{
-            sort_field : {"order": sort_order}
+            },
+            "from": start_from,
+            "size": page_size
         }
-    }
+    if sort_field  != "":
+        query_body = if_sort(query_body,sort_field,sort_order)
+    
     es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
     result = standard_output(es_result)
 
     return result
 
 # Query events based on field("tags_string")
-def data_event_category(key_event,page_number, page_size):
-    start_from = (page_number - 1) * page_size
+def data_event_category(key_event,page_number, page_size,sort_field,sort_order):
+    start_from = (int(page_number) - 1) * int(page_size)
     query_body = {
         "query": {
             "bool": {
@@ -136,6 +131,9 @@ def data_event_category(key_event,page_number, page_size):
         "from": start_from,
         "size": page_size
     }
+    if sort_field  != "":
+        query_body = if_sort(query_body,sort_field,sort_order)
+
     es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
     result = standard_output(es_result)
 
@@ -171,31 +169,25 @@ def data_browse_by_category():
     return final_tags
 
 
-def data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number, page_size):
+def data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number, page_size,sort_field,sort_order):
     if keyword != "":
-        result1 = data_read(keyword,page_number, page_size) #返回结果为列表
+        result1 = data_read(keyword,page_number, page_size,sort_field,sort_order) #返回结果为列表
     else:
-        result1 = data_eventlist(page_number, page_size)
-    result = list()
-    for t, _ in enumerate(result1):
-        timearray = time.strptime(_["timestamp"], "%Y-%m-%d %H:%M:%S")
-        timestamp = float(time.mktime(timearray))
-        if float(from_time) <= timestamp and timestamp <= float(to_time) and  _["geo"].encode("utf-8") == key_geo:
-            result.append(_)
+        result1 = data_eventlist(page_number, page_size,sort_field,sort_order)
+
+    result = query_condition(result1,from_time,to_time,key_geo)
 
     return result
 
-def data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number, page_size):
+
+
+def data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number, page_size,sort_field,sort_order):
     if tags_string != "":
-        result1 = data_event_category(tags_string,page_number, page_size) #返回结果为列表
+        result1 = data_event_category(tags_string,page_number, page_size,sort_field,sort_order) #返回结果为列表
     else:
-        result1 = data_eventlist(page_number, page_size)
-    result = list()
-    for t, _ in enumerate(result1):
-        timearray = time.strptime(_["timestamp"], "%Y-%m-%d %H:%M:%S")
-        timestamp = float(time.mktime(timearray))
-        if float(from_time) <= timestamp and timestamp <= float(to_time) and  _["geo"].encode("utf-8") == key_geo:
-            result.append(_)
+        result1 = data_eventlist(page_number, page_size,sort_field,sort_order)
+
+    result = query_condition(result1,from_time,to_time,key_geo)
 
     return result
 
@@ -234,7 +226,9 @@ def search_event():
     keyword = request.args.get('keyword')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    result = data_read(keyword,page_number, page_size)
+    sort_field = request.args.get('sort_field')
+    sort_order = request.args.get('sort_order')
+    result = data_read(keyword,page_number, page_size,sort_field,sort_order)
 
     return json.dumps(result)
 
@@ -244,16 +238,9 @@ def search_event():
 def get_eventlist():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    result = data_eventlist(page_number, page_size)
-
-    return json.dumps(result)
-
-# 对全部列表进行字段排序
-@mod.route('/eventlist_sort', methods=['GET','POST']) 
-def get_eventlist_sort():
     sort_field = request.args.get('sort_field')
     sort_order = request.args.get('sort_order')
-    result = data_eventlist_sort(sort_field,sort_order)
+    result = data_eventlist(page_number, page_size,sort_field,sort_order)
 
     return json.dumps(result)
 
@@ -272,7 +259,9 @@ def event_category():
     key_event = request.args.get('key_event')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    result = data_event_category(key_event,page_number, page_size)
+    sort_field = request.args.get('sort_field')
+    sort_order = request.args.get('sort_order')
+    result = data_event_category(key_event,page_number, page_size,sort_field,sort_order)
 
     return json.dumps(result)
 
@@ -286,7 +275,9 @@ def advanced_query_in_eventlist():
     key_geo = request.args.get('key_geo')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    result = data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number,page_size)
+    sort_field = request.args.get('sort_field')
+    sort_order = request.args.get('sort_order')
+    result = data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number,page_size,sort_field,sort_order)
 
     return json.dumps(result)
     
@@ -299,7 +290,9 @@ def advanced_query_in_category():
     key_geo = request.args.get('key_geo')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    result = data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number,page_size)
+    sort_field = request.args.get('sort_field')
+    sort_order = request.args.get('sort_order')
+    result = data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number,page_size,sort_field,sort_order)
 
     return json.dumps(result)
 
