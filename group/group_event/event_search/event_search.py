@@ -67,13 +67,13 @@ def data_read(keyword,page_number, page_size,sort_field,sort_order):
         "query": {
             "bool": {
                 "should":[{
-                    "term":{
-                        "event_title": keyword
+                    "wildcard":{
+                        "event_title": "*" +keyword + "*"
                     }
                 },
                 {
-                    "term":{
-                        "keywords_string": keyword
+                    "wildcard":{
+                        "keywords_string": "*" +keyword + "*"
                     }
 
                 }]
@@ -122,8 +122,8 @@ def data_event_category(key_event,page_number, page_size,sort_field,sort_order):
         "query": {
             "bool": {
                 "must":{
-                    "term": {
-                        "tags_string": key_event
+                    "wildcard": {
+                        "tags_string": "*" + key_event + "*"
                     }
                 }
             }
