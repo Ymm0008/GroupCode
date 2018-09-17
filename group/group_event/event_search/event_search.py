@@ -10,7 +10,7 @@ from group_event.global_utils import index_content_sensing, type_content_sensing
 from group_event.time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts, ts2datetime_full
 
 from elasticsearch import Elasticsearch
-es = Elasticsearch("219.224.134.226:9209",timeout=600)
+es = Elasticsearch("219.224.134.226:9207",timeout=600)
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -222,12 +222,13 @@ def data_browse_by_category():
         last_tags = last_tags + tags[t].encode("utf-8").split("&")# 将有多个标签的拆分
     last_tags = list(set(last_tags))   #给标签去重
 
-    final_tags = list()
+    final_tags = dict()
     for t, _ in enumerate(last_tags):
-        dic = dict()
+        final_tags[_]=data_event_category_count(_)
+        # dic = dict()
         # number = len(data_event_browse(_))
-        dic[_] = data_event_category_count(_)
-        final_tags.append(dic)
+        # dic[_] = data_event_category_count(_)
+        # final_tags.append(dic)
 
     return final_tags
 
