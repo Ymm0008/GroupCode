@@ -5,12 +5,12 @@ import sys
 import json
 import time
 from flask import Blueprint, render_template, Flask,request
-from group_event.global_utils import es_sensor
-from group_event.global_utils import index_content_sensing, type_content_sensing, index_monitor_task,type_monitor_task
-from group_event.time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts, ts2datetime_full
+#from group_event.global_utils import es_sensor
+#from group_event.global_utils import index_content_sensing, type_content_sensing, index_monitor_task,type_monitor_task
+#from group_event.time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts, ts2datetime_full
 
 from elasticsearch import Elasticsearch
-es = Elasticsearch("219.224.134.226:9209",timeout=600)
+es = Elasticsearch("219.224.134.226:9207",timeout=600)
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -40,148 +40,6 @@ def standard_search(count,data_result):
     result = dict()
     result["total_num"] = count
     result["data_result"] = data_result
-
-    return result
-
-# 排序
-def if_sort(query_body,sort_field,sort_order):
-    sort = {
-            "sort" :{
-                sort_field : {"order": sort_order}
-            }
-    }
-
-    result = dict(query_body,**sort)
-    return result
-    
-def page_print(query_body,start_from, page_size):
-    page_print ={
-                 "from": start_from,
-                 "size": page_size
-    }
-    result = dict(query_body,**page_print)
-    return result
-
-# 高级搜索
-def query_condition(result1,from_time,to_time,key_geo):
-    result = list()
-    for t, _ in enumerate(result1):
-        timearray = time.strptime(_["timestamp"], "%Y-%m-%d %H:%M:%S")
-        timestamp = float(time.mktime(timearray))
-        if from_time != "" and key_geo != "":
-            if float(from_time) <= timestamp and timestamp <= float(to_time) and  _["geo"].encode("utf-8") == key_geo:
-                result.append(_)
-        elif from_time =='' and key_geo != '':
-            if _["geo"].encode("utf-8") == key_geo:
-                result.append(_)
-        elif from_time != '' and key_geo == '':
-            if float(from_time) <= timestamp and timestamp <= float(to_time):
-                result.append(_)
-    return result
-
-# Query events based on keyword for field("event_title") 关键词搜索及对其结果的分页与排序
-# search?keyword=留守儿童&page_number=1&page_size=2&sort_field=&sort_order=     基本查询
-# search?keyword=留守儿童&page_number=1&page_size=2&sort_field=heat_index&sort_order=asc     对结果排序
-def data_read(keyword,page_number, page_size,sort_field,sort_order):
-    
-    query_body = {
-        "query": {
-            "bool": {
-                "should":[{
-                    "wildcard":{
-                        "event_title": "*" +keyword + "*"
-                    }
-                },
-                {
-                    "wildcard":{
-                        "keywords_string": "*" +keyword + "*"
-                    }
-
-                }]
-            }
-        },
-        "sort":{"safety_index":{"order":"asc"}} #默认以安全指数升序排序
-    }
-    count_result = es.count(index="group_incidents", doc_type="text", body=query_body)["count"]
-    if page_number != "all_event":
-        start_from = (int(page_number) - 1) * int(page_size)
-        query_body = page_print(query_body,start_from,page_size)
-    else:
-        size = {"size":10000}
-        query_body = dict(query_body,**size)
-    if sort_field  != "":
-        query_body = if_sort(query_body,sort_field,sort_order)
-
-    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"]
-    data_result = standard_output(es_result)
-    result = standard_search(count_result,data_result)
-
-    return result
-
-
-
-
-# Query all event information 返回全部事件列表 可作为默认显示的事件列表
-# eventlist?page_number=1&page_size=5&sort_field=&sort_order=            基本查询
-# eventlist?page_number=1&page_size=5&sort_field=heat_index&sort_order=asc     对结果排序
-def data_eventlist(page_number, page_size,sort_field,sort_order):
-    
-    query_body = {
-            "query": {
-                "bool": {
-                    "must": {
-                        "match_all": {}  #match_all默认返回10个
-                    }
-                }
-            },
-            "sort":{"safety_index":{"order":"asc"}} #默认以安全指数升序排序
-        }
-    count_result = es.count(index="group_incidents", doc_type="text", body=query_body)["count"]
-    if page_number != "all_event":
-        start_from = (int(page_number) - 1) * int(page_size)
-        query_body = page_print(query_body,start_from,page_size)
-    else:
-        size = {"size":10000}
-        query_body = dict(query_body,**size)
-    if sort_field  != "": #给排序就按获取到的进行排序
-        query_body = if_sort(query_body,sort_field,sort_order)
-    
-    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
-    data_result = standard_output(es_result)
-    result = standard_search(count_result,data_result)
-
-    return result
-
-# Query events based on field("tags_string")  根据事件标签进行查询 echarts部分
-# 基本查询 event_category?key_event=社会民生&page_number=1&page_size=2&sort_field=&sort_order=
-# 对结果进行排序 event_category?key_event=社会民生&page_number=1&page_size=2&sort_field=heat_index&sort_order=asc
-def data_event_category(key_event,page_number, page_size,sort_field,sort_order):
-    
-    query_body = {
-        "query": {
-            "bool": {
-                "must":{
-                    "wildcard": {
-                        "tags_string": "*" + key_event + "*"
-                    }
-                }
-            }
-        },
-        "sort":{"safety_index":{"order":"asc"}} #默认以安全指数升序排序
-    }
-    count_result = es.count(index="group_incidents", doc_type="text", body=query_body)["count"]
-    if page_number != "all_event":
-        start_from = (int(page_number) - 1) * int(page_size)
-        query_body = page_print(query_body,start_from,page_size)
-    else:
-        size = {"size":10000}
-        query_body = dict(query_body,**size)
-    if sort_field  != "":
-        query_body = if_sort(query_body,sort_field,sort_order)
-
-    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
-    data_result = standard_output(es_result)
-    result = standard_search(count_result,data_result)
 
     return result
 
@@ -231,57 +89,6 @@ def data_browse_by_category():
 
     return final_tags
 
-'''
-def data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number, page_size,sort_field,sort_order):
-    if keyword != "":
-        result1 = data_read(keyword,page_number, page_size,sort_field,sort_order) #返回结果为列表
-    else:
-        result1 = data_eventlist(page_number, page_size,sort_field,sort_order)
-
-    result = query_condition(result1,from_time,to_time,key_geo)
-
-    return result
-    '''
-
-def data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number, page_size,sort_field,sort_order):
-    if keyword != "":
-        result1 = data_read(keyword,"all_event", page_size,sort_field,sort_order) #返回结果为列表
-        result2 = result1["data_result"]
-    else:
-        result1 = data_eventlist("all_event", page_size,sort_field,sort_order)
-        result2 = result1["data_result"]
-
-    result3 = query_condition(result2,from_time,to_time,key_geo) # 符合条件的数据
-    count_result = len(result3)
-    start_from = (int(page_number) - 1) * int(page_size)
-    stop_at = start_from + int(page_size)
-    data_result = result3[start_from:stop_at]
-    result = standard_search(count_result,data_result)
-
-    return result
-
-
-
-def data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number, page_size,sort_field,sort_order):
-    if tags_string != "":
-        result1 = data_event_category(tags_string,"all_event", page_size,sort_field,sort_order)
-        result2 = result1["data_result"] #返回结果为列表
-    else:
-        result1 = data_eventlist("all_event", page_size,sort_field,sort_order)
-        result2 = result1["data_result"]
-        
-
-    result3 = query_condition(result2,from_time,to_time,key_geo) # 符合条件的数据
-    count_result = len(result3) 
-    start_from = (int(page_number) - 1) * int(page_size)
-    stop_at = start_from + int(page_size)
-    data_result = result3[start_from:stop_at]
-    result = standard_search(count_result,data_result)
-
-    return result
-
-
-# Select events to add "my attention"
 def data_my_focus(focus_id,focus_type):
 
     es.update(index="group_incidents",doc_type="text",id = focus_id,body = {"doc":{"focus_type":focus_type}})
@@ -302,99 +109,202 @@ def data_my_collect(collect_id,collect_type):
 
     return result
 
-# Initial interface
+def event_search_keyword(keyword,from_time,to_time,key_geo,page_size,page_number,sort_field,sort_order):
+    
+    if keyword:
+        query_body = {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must":[],
+                            "should":[{
+                                "wildcard":{
+                                    "event_title": "*" +keyword + "*"
+                                }
+                            },
+                            {
+                                "wildcard":{
+                                    "keywords_string": "*" +keyword + "*"
+                                }
+
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    else:
+        query_body = {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must": []
+                        }
+                    }
+                }
+            }
+        }
+
+    if from_time :
+        es_time = {
+                "range": {
+                    "timestamp": {
+                        "gte": from_time,
+                        "lte": to_time
+                    }
+                }
+            }
+        query_body["query"]["filtered"]["filter"]["bool"]["must"].append(es_time)
+    if key_geo:
+        es_geo = {
+            "wildcard": {
+                "geo": "*" + key_geo + "*"
+            }
+        }
+        query_body["query"]["filtered"]["filter"]["bool"]["must"].append(es_geo)
+    if page_number:
+        start_from = (int(page_number) - 1) * int(page_size)
+        page_print ={
+                 "from": start_from,
+                 "size": page_size
+        }
+        query_body = dict(query_body,**page_print)
+    if sort_field:
+        sort = {
+            "sort" :{
+                sort_field : {"order": sort_order}
+            }
+        }
+        query_body = dict(query_body,**sort)
+    count_result = es.count(index="group_incidents", doc_type="text", body=query_body)["count"]
+    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
+    data_result = standard_output(es_result)
+    result = standard_search(count_result,data_result)
+    final_result["result"] = result
+
+    return final_result
+
+def event_search_category(tags_string,from_time,to_time,key_geo,page_size,page_number,sort_field,sort_order): 
+    
+    if tags_string:
+        query_body = {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must":[{
+                                "wildcard" :{
+                                    "tags_string" : "*" + tags_string + "*"
+                                }
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    else:
+        query_body = {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "bool": {
+                            "must": []
+                        }
+                    }
+                }
+            }
+        }
+    if from_time:
+        es_time = {
+                "range": {
+                    "timestamp": {
+                        "gte": from_time,
+                        "lte": to_time
+                    }
+                }
+            }
+        query_body["query"]["filtered"]["filter"]["bool"]["must"].append(es_time)
+    if key_geo:
+        es_geo = {
+            "wildcard": {
+                "geo": "*" + key_geo + "*"
+            }
+        }
+        query_body["query"]["filtered"]["filter"]["bool"]["must"].append(es_geo)
+    if page_number:
+        start_from = (int(page_number) - 1) * int(page_size)
+        page_print ={
+                 "from": start_from,
+                 "size": page_size
+        }
+        query_body = dict(query_body,**page_print)
+    if sort_field:
+        sort = {
+            "sort" :{
+                sort_field : {"order": sort_order}
+            }
+        }
+        query_body = dict(query_body,**sort)
+    count_result = es.count(index="group_incidents", doc_type="text", body=query_body)["count"]
+    es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
+    data_result = standard_output(es_result)
+    result = standard_search(count_result,data_result)
+
+    return result
+
+
 @mod.route('/')
 def index():
 
     return render_template('index.html')
 
-# interface for query events based on keyword for field("event_title")
-# 单事件检索
-# 关键词搜索及对其结果的分页与排序
-# search?keyword=留守儿童&page_number=1&page_size=2&sort_field=&sort_order=     基本查询
-# search?keyword=留守儿童&page_number=1&page_size=2&sort_field=heat_index&sort_order=asc     对结果排序
-@mod.route('/search', methods=['GET','POST']) 
-def search_event():
-    keyword = request.args.get('keyword')
-    page_number = request.args.get('page_number')
-    page_size = request.args.get('page_size')
-    sort_field = request.args.get('sort_field')
-    sort_order = request.args.get('sort_order')
-    result = data_read(keyword,page_number, page_size,sort_field,sort_order)
+@mod.route('/event_search', methods=['POST']) 
+def event_search():
 
-    return json.dumps(result)
+    term = request.get_json()
 
-# interface for query all event information
-# 返回全部事件列 可作为默认显示的事件列表
-# eventlist?page_number=1&page_size=5&sort_field=&sort_order=            基本查询
-# eventlist?page_number=1&page_size=5&sort_field=heat_index&sort_order=asc     对结果排序
-@mod.route('/eventlist', methods=['GET','POST']) 
-def get_eventlist():
-    page_number = request.args.get('page_number')
-    page_size = request.args.get('page_size')
-    sort_field = request.args.get('sort_field')
-    sort_order = request.args.get('sort_order')
-    result = data_eventlist(page_number, page_size,sort_field,sort_order)
+    if term.has_key('keyword'): #关键词
+        keyword = term['keyword']
+    else:
+        keyword = ""
+    if term.has_key('tags_string'): #事件标签
+        tags_string = term['tags_string']
+    else:
+        tags_string = ""
+    if term.has_key('from_time'): #开始时间 时间戳形式
+        from_time = term['from_time']  #int类型
+    else:
+        from_time = "" #不查则为空
+    if term.has_key("to_tome"): #结束时间 时间戳形式
+        to_time = term['to_time'] #int 类型
+    else:
+        to_time = time.time() #时间戳形式
+    if term.has_key('page_size'):
+        page_size = term['page_size']
+    else:
+        page_size = 1
+    if term.has_key("page_number"):
+        page_number = term["page_number"]
+    else:
+        page_number = 5
+    if term.has_key("sort_field"):
+        sort_field = term["sort_field"]
+    else:
+        sort_field = "safety_index"
+    if term.has_key("sort_order"):
+        sort_order = term["sort_order"]
+    else:
+        sort_order = "asc"
 
-    return json.dumps(result)
-
-# interface for query all event tags and tag weight
-# 返回事件标签及各标签权重 获得数据做echarts
-@mod.route('/browse_by_category', methods=['GET','POST']) 
-def browse_by_category():
-    result = data_browse_by_category()
-
-    return json.dumps(result)
-
-# interface for query events based on field("tags_string")
-# 按照事件标签对是事件进行查询 点击echarts进行查询部分
-# 基本查询 event_category?key_event=社会民生&page_number=1&page_size=2&sort_field=&sort_order=
-# 对结果进行排序 event_category?key_event=社会民生&page_number=1&page_size=2&sort_field=heat_index&sort_order=asc
-@mod.route('/event_category', methods=['GET','POST']) 
-def event_category():
-    key_event = request.args.get('key_event')
-    page_number = request.args.get('page_number')
-    page_size = request.args.get('page_size')
-    sort_field = request.args.get('sort_field')
-    sort_order = request.args.get('sort_order')
-    result = data_event_category(key_event,page_number, page_size,sort_field,sort_order)
-
-    return json.dumps(result)
-
-# interface for query event based on time
-# 在事件列表下根据时间地域进行高级搜索  有关键词 即对关键词查询结果进行高级搜索 没有关键词 为对默认事件列表进行高级搜索
-# 高级搜索是进行分页 排序
-# 事件列表下 有关键词 advanced_query_in_eventlist?keyword=留守儿童&from_time=&to_time=&key_geo=上海&page_number=1&page_size=2&sort_field=&sort_order=
-# 事件列表下 没有关键词 advanced_query_in_eventlist?keyword=&from_time=&to_time=&key_geo=上海&page_number=1&page_size=2&sort_field=&sort_order=
-@mod.route('/advanced_query_in_eventlist', methods=['GET','POST']) 
-def advanced_query_in_eventlist():
-    keyword = request.args.get('keyword')
-    from_time = request.args.get('from_time')
-    to_time = request.args.get('to_time')
-    key_geo = request.args.get('key_geo')
-    page_number = request.args.get('page_number')
-    page_size = request.args.get('page_size')
-    sort_field = request.args.get('sort_field')
-    sort_order = request.args.get('sort_order')
-    result = data_advanced_query_in_eventlist(keyword,from_time,to_time,key_geo,page_number,page_size,sort_field,sort_order)
-
-    return json.dumps(result)
-    
- # 在分类浏览下根据时间地域进行高级搜索（没有事件标签的话 要返回空字符串）
- # 分类浏览下 无标签高级搜索 advanced_query_in_category?tags_string=&from_time=1526018962&to_time=1526380138&key_geo=&page_number=1&page_size=4&sort_field=&sort_order=
- # 分类浏览下 有标签高级搜索 advanced_query_in_category?tags_string=社会民生&from_time=&to_time=&key_geo=北京&page_number=1&page_size=2&sort_field=&sort_order=
- # 高级搜索是进行分页 排序
-@mod.route('/advanced_query_in_category', methods=['GET','POST']) 
-def advanced_query_in_category():
-    tags_string = request.args.get('tags_string')
-    from_time = request.args.get('from_time')
-    to_time = request.args.get('to_time')
-    key_geo = request.args.get('key_geo')
-    page_number = request.args.get('page_number')
-    page_size = request.args.get('page_size')
-    sort_field = request.args.get('sort_field')
-    sort_order = request.args.get('sort_order')
-    result = data_advanced_query_in_category(tags_string,from_time,to_time,key_geo,page_number,page_size,sort_field,sort_order)
+    if term["type"] == 1: #事件列表
+        result = event_search_keyword(keyword,from_time,to_time,key_geo,page_size,page_number,sort_field,sort_order)
+    elif term["type"] == 2: #分类浏览
+        echarts_result = data_browse_by_category()
+        data_result = event_search_category(tags_string,from_time,to_time,key_geo,page_size,page_number,sort_field,sort_order)
+        result["result"] = data_result
+        result["echarts"] = "echarts_result"
 
     return json.dumps(result)
 
@@ -406,7 +316,7 @@ def my_focus():
     focus_type = request.args.get('focus_type')
     result = data_my_focus(focus_id,focus_type)
 
-    return json.dumps(result)
+    return json.dumps("1")
 
 # 我的收藏 my_collect?collect_id=AWV1Ta3H8PIDIgu4NCV9&collect_type=1
 @mod.route('/my_collect', methods=['GET','POST']) 
@@ -415,7 +325,7 @@ def my_collect():
     collect_type = request.args.get('collect_type')
     result = data_my_collect(collect_id,collect_type)
 
-    return json.dumps(result)
+    return json.dumps("1")
 
 '''
 # 新建任务 加入事件定制  
