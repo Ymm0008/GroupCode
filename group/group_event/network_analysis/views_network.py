@@ -29,8 +29,10 @@ def influence_rank_of_men():
     page_size = request.args.get('page_size')
     list_of_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
                         _source = 'man_rank')['_source']['man_rank']
-    list_of_men_11 = set_page(list_of_men, page_number, page_size)
-    return json.dumps(list_of_men_11)
+    dic_of_men = dict()
+    dic_of_men['total_num'] = len(list_of_men)
+    dic_of_men['data'] = set_page(list_of_men, page_number, page_size)
+    return json.dumps(dic_of_men)
 
 @mod.route('/influence_rank_of_media', methods=['POST','GET'])
 def influence_rank_of_media():
@@ -40,8 +42,10 @@ def influence_rank_of_media():
     page_size = request.args.get('page_size')
     list_of_media = es.get(index = 'network_analysis1', doc_type = event_name, \
                             id = date, _source = 'media_rank')['_source']['media_rank']
-    media_list = set_page(list_of_media, page_number, page_size) 
-    return json.dumps(media_list)
+    dic_of_media = dict()
+    dic_of_media['total_num'] = len(list_of_media)
+    dic_of_media['data'] = set_page(list_of_media, page_number, page_size)
+    return json.dumps(dic_of_media)
 
 @mod.route('/representitive_blog_of_men', methods=['POST','GET']) 
 def representitive_blog_of_men():
@@ -52,8 +56,10 @@ def representitive_blog_of_men():
     representitive_blog_of_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_men')\
                                         ['_source']['representitive_blog_of_men']
-    representitive_blog_of_men_1 = set_page(representitive_blog_of_men, page_number, page_size)
-    return json.dumps(representitive_blog_of_men_1)
+    dic_of_blog_of_men = dict()
+    dic_of_blog_of_men['total_num'] = len(representitive_blog_of_men)
+    dic_of_blog_of_men['data'] = set_page(representitive_blog_of_men, page_number, page_size)
+    return json.dumps(dic_of_blog_of_men)
 
 @mod.route('/representitive_blog_of_meida', methods=['POST','GET'])
 def representitive_blog_of_media():
@@ -64,8 +70,10 @@ def representitive_blog_of_media():
     representitive_blog_of_media = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_media')\
                                         ['_source']['representitive_blog_of_media']
-    representitive_blog_of_media_1 = set_page(representitive_blog_of_media, page_number, page_size)
-    return json.dumps(representitive_blog_of_media_1)
+    dic_of_blog_of_media = dict()
+    dic_of_blog_of_media['total_num'] = len(representitive_blog_of_media)
+    dic_of_blog_of_media['data'] = set_page(representitive_blog_of_media, page_number, page_size)
+    return json.dumps(dic_of_blog_of_media)
 
 @mod.route('/related_men', methods=['POST','GET']) 
 def related_men(): 
@@ -76,7 +84,10 @@ def related_men():
                         _source = 'related_men')['_source']['related_men']
     for i in range(len(related_men)):
         if int(related_men[i]['uid']) == int(targeted_uid):
-            return json.dumps(related_men[i])
+            dic_of_related_men = dict()
+            dic_of_related_men['total_num'] = len(related_men[i]['related_men'])
+            dic_of_related_men['data'] = related_men[i]
+            return json.dumps(dic_of_related_men)
             break
 
 @mod.route('/representitive_blog_of_related_men', methods=['POST','GET']) 
@@ -89,7 +100,10 @@ def representitive_blog_of_related_men():
                                                 ['_source']['representitive_blog_of_related_men']
     for i in range(len(representitive_blog_of_related_men)):
         if int(representitive_blog_of_related_men[i]['uid']) == int(targeted_uid):
-            return json.dumps(representitive_blog_of_related_men[0]['related_men'])
+            dic_of_blog_of_related_men = dict()
+            dic_of_blog_of_related_men['total_num'] = len(representitive_blog_of_related_men[i]['related_men'])
+            dic_of_blog_of_related_men['data'] = representitive_blog_of_related_men[i]['related_men']
+            return json.dumps(dic_of_blog_of_related_men)
             break
 
 @mod.route('/data_for_graph', methods=['POST','GET']) 
