@@ -27,7 +27,7 @@ def influence_rank_of_men():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    list_of_men = es.get(index = 'network_analysis', doc_type = event_name, id = date,\
+    list_of_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
                         _source = 'man_rank')['_source']['man_rank']
     list_of_men_11 = set_page(list_of_men, page_number, page_size)
     return json.dumps(list_of_men_11)
@@ -38,7 +38,7 @@ def influence_rank_of_media():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    list_of_media = es.get(index = 'network_analysis', doc_type = event_name, \
+    list_of_media = es.get(index = 'network_analysis1', doc_type = event_name, \
                             id = date, _source = 'media_rank')['_source']['media_rank']
     media_list = set_page(list_of_media, page_number, page_size) 
     return json.dumps(media_list)
@@ -49,7 +49,7 @@ def representitive_blog_of_men():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    representitive_blog_of_men = es.get(index = 'network_analysis', doc_type = event_name,\
+    representitive_blog_of_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_men')\
                                         ['_source']['representitive_blog_of_men']
     representitive_blog_of_men_1 = set_page(representitive_blog_of_men, page_number, page_size)
@@ -61,7 +61,7 @@ def representitive_blog_of_media():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    representitive_blog_of_media = es.get(index = 'network_analysis', doc_type = event_name,\
+    representitive_blog_of_media = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_media')\
                                         ['_source']['representitive_blog_of_media']
     representitive_blog_of_media_1 = set_page(representitive_blog_of_media, page_number, page_size)
@@ -71,20 +71,31 @@ def representitive_blog_of_media():
 def related_men(): 
     event_name = request.args.get('event_name')
     date = request.args.get('date')
-    page_number = request.args.get('page_number')
-    related_men = es.get(index = 'network_analysis', doc_type = event_name, id = date,\
+    targeted_uid = request.args.get('targeted_uid')
+    related_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
                         _source = 'related_men')['_source']['related_men']
-    related_men_1 = set_page(related_men, page_number, 1)
-    return json.dumps(related_men_1)
+    for i in range(len(related_men)):
+        if int(related_men[i]['uid']) == int(targeted_uid):
+            return json.dumps(related_men[i])
+            break
 
 @mod.route('/representitive_blog_of_related_men', methods=['POST','GET']) 
 def representitive_blog_of_related_men():
     event_name = request.args.get('event_name')
     date = request.args.get('date')
-    page_number = request.args.get('page_number')
-    representitive_blog_of_related_men = es.get(index = 'network_analysis', doc_type = event_name,\
+    targeted_uid = request.args.get('targeted_uid')
+    representitive_blog_of_related_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                                 id = date, _source = 'representitive_blog_of_related_men')\
                                                 ['_source']['representitive_blog_of_related_men']
-    representitive_blog_of_related_men_1 = set_page(representitive_blog_of_related_men, page_number, 1)
-    representitive_blog_of_related_men_2 = representitive_blog_of_related_men_1[0]['related_men']
-    return json.dumps(representitive_blog_of_related_men_2)
+    for i in range(len(representitive_blog_of_related_men)):
+        if int(representitive_blog_of_related_men[i]['uid']) == int(targeted_uid):
+            return json.dumps(representitive_blog_of_related_men[0]['related_men'])
+            break
+
+@mod.route('/data_for_graph', methods=['POST','GET']) 
+def data_for_graph():
+    event_name = request.args.get('event_name')
+    date = request.args.get('date')
+    data_for_graph = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
+                        _source = 'content_for_graph')['_source']['content_for_graph']
+    return json.dumps(data_for_graph)
