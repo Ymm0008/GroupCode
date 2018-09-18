@@ -132,7 +132,11 @@ def curve_output_for_frontend(event_name):   # 只调用一次
     # 返回整个时间轴的数据
     evolution_and_key_user, heat_and_emotion = extract_curve_result(index_name_for_curve, event_name)
 
-    return evolution_and_key_user, heat_and_emotion
+    d = {}
+    d["evolution_and_key_user"] = evolution_and_key_user
+    d["heat_and_emotion"] = heat_and_emotion
+
+    return json.dumps(d)
 
 
 def content_output_for_frontend(event_name, timestamp, page_num, page_size):   # 每次请求现调用
@@ -157,12 +161,12 @@ def content_output_for_frontend(event_name, timestamp, page_num, page_size):   #
 
 
 # if __name__ == '__main__':
-
+#
 #     page_num = 3
 #     page_size = 5
-
-#     a, b = curve_output_for_frontend("flow_text_gangdu")
+#
+#     a = curve_output_for_frontend("flow_text_gangdu")
 #     c = content_output_for_frontend("flow_text_gangdu", 1513966400, page_num, page_size)
-    # print a
-    # print b
-    # print c
+#     print a
+#     print b
+#     print c

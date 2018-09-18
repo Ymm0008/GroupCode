@@ -22,9 +22,9 @@ mod = Blueprint('evolution_analysis', __name__, url_prefix='/evolution')   # url
 def curve_output():
 
     event_name = request.args.get('event_name')
-    evolution_and_key_user, heat_and_emotion = curve_output_for_frontend(event_name)
+    d = curve_output_for_frontend(event_name)
 
-    return json.dumps(evolution_and_key_user), json.dumps(heat_and_emotion)
+    return json.dumps(d) 
 
 
 @mod.route('/risk_details_output', methods=['POST','GET'])
@@ -35,6 +35,6 @@ def risk_details_output():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
 
-    content_result = content_output_for_frontend(event_name, timestamp，page_number, page_size)  
+    content_result = content_output_for_frontend(event_name, timestamp, page_number, page_size)  
     
     return json.dumps(content_result)
