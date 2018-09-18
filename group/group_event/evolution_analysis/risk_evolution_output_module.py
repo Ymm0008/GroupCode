@@ -130,10 +130,7 @@ def get_length(index_name, event_name):
 def curve_output_for_frontend(event_name):   # 只调用一次
 
     # 返回整个时间轴的数据
-    first_two_curve, second_two_curve = extract_curve_result(index_name_for_curve, event_name)
-
-    evolution_and_key_user = json.dumps(first_two_curve)
-    heat_and_emotion = json.dumps(second_two_curve)
+    evolution_and_key_user, heat_and_emotion = extract_curve_result(index_name_for_curve, event_name)
 
     return evolution_and_key_user, heat_and_emotion
 
