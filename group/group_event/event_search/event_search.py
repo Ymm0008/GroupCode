@@ -183,6 +183,7 @@ def event_search_keyword(keyword,from_time,to_time,key_geo,page_size,page_number
     es_result = es.search(index="group_incidents", doc_type="text", body=query_body)["hits"]["hits"] 
     data_result = standard_output(es_result)
     result = standard_search(count_result,data_result)
+    final_result=dict()
     final_result["result"] = result
 
     return final_result
@@ -278,10 +279,14 @@ def event_search():
         from_time = term['from_time']  #int类型
     else:
         from_time = "" #不查则为空
-    if term.has_key("to_tome"): #结束时间 时间戳形式
+    if term.has_key("to_time"): #结束时间 时间戳形式
         to_time = term['to_time'] #int 类型
     else:
         to_time = time.time() #时间戳形式
+    if term.has_key("key_geo"): #地域
+        key_geo = term['key_geo'] 
+    else:
+        key_geo = '' 
     if term.has_key('page_size'):
         page_size = term['page_size']
     else:
@@ -304,8 +309,9 @@ def event_search():
     elif term["type"] == 2: #分类浏览
         echarts_result = data_browse_by_category()
         data_result = event_search_category(tags_string,from_time,to_time,key_geo,page_size,page_number,sort_field,sort_order)
+        result=dict()
         result["result"] = data_result
-        result["echarts"] = "echarts_result"
+        result["echarts"] = echarts_result
 
     return json.dumps(result)
 
