@@ -79,6 +79,8 @@ def representitive_blog_of_media():
 def related_men(): 
     event_name = request.args.get('event_name')
     date = request.args.get('date')
+    page_number = request.args.get('page_number')
+    page_size = request.args.get('page_size')    
     targeted_uid = request.args.get('targeted_uid')
     related_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
                         _source = 'related_men')['_source']['related_men']
@@ -86,7 +88,7 @@ def related_men():
         if int(related_men[i]['uid']) == int(targeted_uid):
             dic_of_related_men = dict()
             dic_of_related_men['total_num'] = len(related_men[i]['related_men'])
-            dic_of_related_men['data'] = related_men[i]
+            dic_of_related_men['data'] = set_page(related_men[i], page_number, page_size)
             return json.dumps(dic_of_related_men)
             break
 
@@ -94,6 +96,8 @@ def related_men():
 def representitive_blog_of_related_men():
     event_name = request.args.get('event_name')
     date = request.args.get('date')
+    page_number = request.args.get('page_number')
+    page_size = request.args.get('page_size') 
     targeted_uid = request.args.get('targeted_uid')
     representitive_blog_of_related_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                                 id = date, _source = 'representitive_blog_of_related_men')\
@@ -102,7 +106,7 @@ def representitive_blog_of_related_men():
         if int(representitive_blog_of_related_men[i]['uid']) == int(targeted_uid):
             dic_of_blog_of_related_men = dict()
             dic_of_blog_of_related_men['total_num'] = len(representitive_blog_of_related_men[i]['related_men'])
-            dic_of_blog_of_related_men['data'] = representitive_blog_of_related_men[i]['related_men']
+            dic_of_blog_of_related_men['data'] = set_page(representitive_blog_of_related_men[i]['related_men'], page_number, page_size)
             return json.dumps(dic_of_blog_of_related_men)
             break
 
