@@ -57,17 +57,23 @@ def representitive_blog_of_men():
     representitive_blog_of_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_men')\
                                         ['_source']['representitive_blog_of_men']
-    tag = 0
-    for i in range(len(representitive_blog_of_men)):
-        if int(representitive_blog_of_men[i]['uid']) == int(targeted_uid):
-            dic_of_blog_of_men = dict()
-            tag = 1
-            dic_of_blog_of_men['total_num'] = len(representitive_blog_of_men[i]['blog'])
-            dic_of_blog_of_men['data'] = set_page(representitive_blog_of_men[i]['blog'], page_number, page_size)
-            return json.dumps(dic_of_blog_of_men)
-            break
-    if tag == 0:
-        return json.dumps('Not found')
+    if targeted_uid =='':
+        dic_of_blog_of_men = dict()
+        dic_of_blog_of_men['total_num'] = len(representitive_blog_of_men[0]['blog'])
+        dic_of_blog_of_men['data'] = set_page(representitive_blog_of_men[0]['blog'], page_number, page_size)
+        return json.dumps(dic_of_blog_of_men)
+    else:
+        tag = 0
+        for i in range(len(representitive_blog_of_men)):
+            if int(representitive_blog_of_men[i]['uid']) == int(targeted_uid):
+                dic_of_blog_of_men = dict()
+                tag = 1
+                dic_of_blog_of_men['total_num'] = len(representitive_blog_of_men[i]['blog'])
+                dic_of_blog_of_men['data'] = set_page(representitive_blog_of_men[i]['blog'], page_number, page_size)
+                return json.dumps(dic_of_blog_of_men)
+                break
+        if tag == 0:
+            return json.dumps('Not found')
 
 
 @mod.route('/representitive_blog_of_media', methods=['POST','GET'])
@@ -76,20 +82,27 @@ def representitive_blog_of_media():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
+    targeted_uid = request.args.get('targeted_uid')
     representitive_blog_of_media = es.get(index = 'network_analysis1', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_media')\
                                         ['_source']['representitive_blog_of_media']
-    tag = 0
-    for i in range(len(representitive_blog_of_media)):
-        if int(representitive_blog_of_media[i]['uid']) == int(targeted_uid):
-            dic_of_blog_of_media = dict()
-            tag = 1
-            dic_of_blog_of_media['total_num'] = len(representitive_blog_of_media[i]['blog'])
-            dic_of_blog_of_media['data'] = set_page(representitive_blog_of_media[i]['blog'], page_number, page_size)
-            return json.dumps(dic_of_blog_of_media)
-            break
-    if tag == 0:
-        return json.dumps('Not found')    
+    if targeted_uid =='':
+        dic_of_blog_of_media = dict()
+        dic_of_blog_of_media['total_num'] = len(representitive_blog_of_media[0]['blog'])
+        dic_of_blog_of_media['data'] = set_page(representitive_blog_of_media[0]['blog'], page_number, page_size)
+        return json.dumps(dic_of_blog_of_media)    
+    else:
+        tag = 0
+        for i in range(len(representitive_blog_of_media)):
+            if int(representitive_blog_of_media[i]['uid']) == int(targeted_uid):
+                dic_of_blog_of_media = dict()
+                tag = 1
+                dic_of_blog_of_media['total_num'] = len(representitive_blog_of_media[i]['blog'])
+                dic_of_blog_of_media['data'] = set_page(representitive_blog_of_media[i]['blog'], page_number, page_size)
+                return json.dumps(dic_of_blog_of_media)
+                break
+        if tag == 0:
+            return json.dumps('Not found')    
 
 @mod.route('/related_men', methods=['POST','GET']) 
 def related_men(): 
@@ -100,18 +113,25 @@ def related_men():
     targeted_uid = request.args.get('targeted_uid')
     related_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
                         _source = 'related_men')['_source']['related_men']
-    tag = 0
-    for i in range(len(related_men)):
-        if int(related_men[i]['uid']) == int(targeted_uid):
-            dic_of_related_men = dict()
-            tag = 1
-            dic_of_related_men['total_num'] = len(related_men[i]['related_men'])
-            related_men[i]['related_men'] = set_page(related_men[i]['related_men'], page_number, page_size)
-            dic_of_related_men['data'] = related_men[i]
-            return json.dumps(dic_of_related_men)
-            break
-    if tag == 0:
-        return json.dumps('Not found')    
+    if targeted_uid =='':
+        dic_of_related_men = dict()
+        dic_of_related_men['total_num'] = len(related_men[0]['related_men'])
+        related_men[0]['related_men'] = set_page(related_men[0]['related_men'], page_number, page_size)
+        dic_of_related_men['data'] = related_men[0]
+        return json.dumps(dic_of_related_men)    
+    else:    
+        tag = 0
+        for i in range(len(related_men)):
+            if int(related_men[i]['uid']) == int(targeted_uid):
+                dic_of_related_men = dict()
+                tag = 1
+                dic_of_related_men['total_num'] = len(related_men[i]['related_men'])
+                related_men[i]['related_men'] = set_page(related_men[i]['related_men'], page_number, page_size)
+                dic_of_related_men['data'] = related_men[i]
+                return json.dumps(dic_of_related_men)
+                break
+        if tag == 0:
+            return json.dumps('Not found')    
 
 @mod.route('/representitive_blog_of_related_men', methods=['POST','GET']) 
 def representitive_blog_of_related_men():
@@ -123,18 +143,25 @@ def representitive_blog_of_related_men():
     representitive_blog_of_related_men = es.get(index = 'network_analysis1', doc_type = event_name,\
                                                 id = date, _source = 'representitive_blog_of_related_men')\
                                                 ['_source']['representitive_blog_of_related_men']
-    tag = 0
-    for i in range(len(representitive_blog_of_related_men)):
-        if int(representitive_blog_of_related_men[i]['uid']) == int(targeted_uid):
-            dic_of_blog_of_related_men = dict()
-            tag = 1
-            dic_of_blog_of_related_men['total_num'] = len(representitive_blog_of_related_men[i]['related_men'])
-            representitive_blog_of_related_men[i]['related_men'] = set_page(representitive_blog_of_related_men[i]['related_men'], page_number, page_size)
-            dic_of_blog_of_related_men['data'] = representitive_blog_of_related_men[i]
-            return json.dumps(dic_of_blog_of_related_men)
-            break
-    if tag == 0:
-        return json.dumps('Not found')  
+    if targeted_uid =='':
+        dic_of_blog_of_related_men = dict()
+        dic_of_blog_of_related_men['total_num'] = len(representitive_blog_of_related_men[0]['related_men'])
+        representitive_blog_of_related_men[0]['related_men'] = set_page(representitive_blog_of_related_men[0]['related_men'], page_number, page_size)
+        dic_of_blog_of_related_men['data'] = representitive_blog_of_related_men[0]
+        return json.dumps(dic_of_blog_of_related_men)    
+    else:    
+        tag = 0
+        for i in range(len(representitive_blog_of_related_men)):
+            if int(representitive_blog_of_related_men[i]['uid']) == int(targeted_uid):
+                dic_of_blog_of_related_men = dict()
+                tag = 1
+                dic_of_blog_of_related_men['total_num'] = len(representitive_blog_of_related_men[i]['related_men'])
+                representitive_blog_of_related_men[i]['related_men'] = set_page(representitive_blog_of_related_men[i]['related_men'], page_number, page_size)
+                dic_of_blog_of_related_men['data'] = representitive_blog_of_related_men[i]
+                return json.dumps(dic_of_blog_of_related_men)
+                break
+        if tag == 0:
+            return json.dumps('Not found')  
 
 @mod.route('/data_for_graph', methods=['POST','GET']) 
 def data_for_graph():
