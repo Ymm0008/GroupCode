@@ -12,6 +12,11 @@ es_for_storage = Elasticsearch(['219.224.134.226:9207'])
 
 
 def create_index_for_curve(index_name):
+    '''
+    :param index_name: name of the index to be created
+
+    :return: none
+    '''
 
     create_body = {
         "settings": {
@@ -86,7 +91,11 @@ def create_index_for_curve(index_name):
 
 
 def create_index_for_content(index_name):
+    '''
+    :param index_name: name of the index to be created
 
+    :return: none
+    '''
     create_body = {
         "settings": {
             "number_of_shards": 5,
@@ -139,6 +148,15 @@ def create_index_for_content(index_name):
 
 
 def index_data_for_curve(index_name, event_name, curve_result):
+    '''
+    store curve result into ES
+
+    :param index_name: name of the index that result stored in
+    :param event_name: name of event, used as the field '_type'
+    :param curve_result: a list that contains curve result
+
+    :return: none
+    '''
 
     for i in range(len(curve_result)):
         es_for_storage.index(index = index_name, doc_type = event_name, id = i, body = {
@@ -162,6 +180,15 @@ def index_data_for_curve(index_name, event_name, curve_result):
 
 
 def index_data_for_content(index_name, event_name, content_result):
+    '''
+    store curve result into ES
+
+    :param index_name: name of the index that result stored in
+    :param event_name: name of event, used as the field '_type'
+    :param content_result: a list that contains content result
+
+    :return: none
+    '''
 
     counter = 0
 
@@ -184,7 +211,15 @@ def index_data_for_content(index_name, event_name, content_result):
 
 
 def construct_risk_details(event_name, content_result):
+    '''
+    add some fields for risk details
+    include uid, key, text and datetime
 
+    :param event_name: name of event
+    :param content_result: a list that contains incomplete content result
+
+    :return: content_result
+    '''
     for i in range(len(content_result)):
         if content_result[i] == []:
             continue
@@ -206,7 +241,7 @@ def construct_risk_details(event_name, content_result):
                     doc_type = "text",
                     body = query_body)
 
-                time.sleep(0.01)  # 避免频繁查询导致出错  可以考虑用try catch
+                time.sleep(0)  # 避免频繁查询导致出错  可以考虑用try catch
                 # print i, j
 
                 content_result[i][j]["uid"] = response["hits"]["hits"][0]["_source"]["uid"]
@@ -218,6 +253,9 @@ def construct_risk_details(event_name, content_result):
 
 
 def timestamp_to_date(unix_time):
+    '''
+    convert unix timestamp to datetime
+    '''
     format = '%y-%m-%d %H:%M'
 
     value = time.localtime(unix_time)
@@ -227,7 +265,15 @@ def timestamp_to_date(unix_time):
 
 
 def store_result_to_ES(event_name):
+    '''
+    interface of the module
+    invoke this function to store processing result into ES
 
+    :param event_name: name of event
+
+    :return: none
+    '''
+    # invoke function processing_flow in module 'risk_evolution_processing_module'
     table_for_curve, hot_post_list = processing_flow(event_name)
 
     table_for_complete_content = construct_risk_details(event_name, hot_post_list)
@@ -240,14 +286,14 @@ def store_result_to_ES(event_name):
     index_data_for_content(index_name_for_content, event_name, table_for_complete_content)
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     st = time.time()
+    st = time.time()
     
-#     store_result_to_ES("flow_text_gangdu")
+    store_result_to_ES("flow_text_gangdu")
 
-    # et = time.time()
-    # print "total running time: ", et - st
+    et = time.time()
+    print "total running time: ", et - st
 
     # didi   64s
     # maoyi  180s

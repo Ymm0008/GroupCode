@@ -24,7 +24,7 @@ def curve_output():
     event_name = request.args.get('event_name')
     d = curve_output_for_frontend(event_name)
 
-    return json.dumps(d) 
+    return d
 
 
 @mod.route('/risk_details_output', methods=['POST','GET'])

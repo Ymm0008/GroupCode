@@ -236,6 +236,15 @@ def key_user_identification(event_name):
 
 
 def risk_details(event_name):
+    '''
+    generate the posts for risk details
+    take 30 mid and count their comment and forward
+
+    :param event_name: name of event
+
+    :return: hot_post_list: a list containing hot posts in each interval
+                            their num of comment and forward have been identified
+    '''
 
     query_body = {   # 返回6小时内全部mid
         "size": 0,
@@ -269,10 +278,8 @@ def risk_details(event_name):
         doc_type = "text",
         body = query_body)
 
+    # get hot posts and count their num of comment and forward
     hot_post_list = get_hot_posts(event_name, response)
-
-    # for i in range(len(hot_post_list)):
-    #     print hot_post_list[i]
 
     return hot_post_list
 
@@ -313,7 +320,10 @@ def query(event_name, field_name, value):
 
 
 def construct_X_axis(origin_response):
-    # comment and forward must happen after origin
+    '''
+    comment and forward must happen after origin
+    So the length of time interval depends on the first and the last origin post
+    '''
     x_axis = []
     buckets = origin_response["aggregations"]["time_slice"]["buckets"]
 
@@ -324,6 +334,9 @@ def construct_X_axis(origin_response):
 
 
 def timestamp_to_date(unix_time):
+    '''
+    convert unix timestamp to datetime
+    '''
     format = '%m/%d %H:%M'
 
     value = time.localtime(unix_time)
@@ -333,7 +346,9 @@ def timestamp_to_date(unix_time):
 
 
 def count_in_each_interval(response):
-    # get doc count
+    '''
+    get doc count
+    '''
     counts = []
     buckets = response["aggregations"]["time_slice"]["buckets"]
 
@@ -344,7 +359,6 @@ def count_in_each_interval(response):
 
 
 def calculate_heat_index(origin_list, comment_list, forward_list, parameter_list):
-
     heat_index = []
     temp = []
 
@@ -603,10 +617,21 @@ def generate_table_for_curve(event_name, datetime, heat_result, emotion_result, 
     return table_for_curve
 
 
-def processing_flow(event_name):   # main function that invokes other functions
+def processing_flow(event_name):
+    '''
+    interface of the module
+    invoke this function to compute curves and risk details
 
+    :param event_name: name of event
+
+    :return: table_for_curve: a list that contains curve result
+             hot_post_list: a list that contains hot posts for risk details
+
+    '''
+    # initialize start and end timestamp
     initialization(event_name)
 
+    # calculate result for 4 curves
     heat_index_list, datetime_list, heat_result = heat_curve(event_name)
     negative_percentage, emotion_result = emotion_curve(event_name)
     risk_result = risk_evolution_curve(event_name, heat_index_list, negative_percentage)
@@ -614,7 +639,7 @@ def processing_flow(event_name):   # main function that invokes other functions
 
     table_for_curve = generate_table_for_curve(event_name, datetime_list, heat_result,
                                                                   emotion_result, risk_result, key_user_result)
-
+    # calculate result for risk details
     hot_post_list = risk_details(event_name)
 
     return table_for_curve, hot_post_list
