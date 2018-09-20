@@ -160,13 +160,12 @@ def content_output_for_frontend(event_name, timestamp, page_num, page_size):   #
     return result_list
 
 
-# if __name__ == '__main__':
-#
-#     page_num = 3
-#     page_size = 5
-#
-#     a = curve_output_for_frontend("flow_text_gangdu")
-#     c = content_output_for_frontend("flow_text_gangdu", 1513966400, page_num, page_size)
-#     print a
-#     print b
-#     print c
+if __name__ == '__main__':
+
+    page_num = 3
+    page_size = 5
+
+    a = curve_output_for_frontend("flow_text_gangdu")
+    c = content_output_for_frontend("flow_text_gangdu", 1523966400, page_num, page_size)
+    # print a
+    # print c

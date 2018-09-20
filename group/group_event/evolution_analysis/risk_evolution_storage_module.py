@@ -8,7 +8,8 @@ from risk_evolution_processing_module import processing_flow
 # global vars
 index_name_for_curve = "risk_evolution_curve_result"
 index_name_for_content = "risk_evolution_content_result"
-es_for_storage = Elasticsearch(['219.224.134.226:9207'])
+es_for_storage = Elasticsearch(['219.224.134.226:9209'])
+timeout = 15
 
 
 def create_index_for_curve(index_name):
@@ -204,7 +205,8 @@ def construct_risk_details(event_name, content_result):
                 response = es_for_storage.search(
                     index = event_name,
                     doc_type = "text",
-                    body = query_body)
+                    body = query_body,
+                    timeout = timeout)
 
                 time.sleep(0.01)  # 避免频繁查询导致出错  可以考虑用try catch
                 # print i, j
@@ -240,15 +242,6 @@ def store_result_to_ES(event_name):
     index_data_for_content(index_name_for_content, event_name, table_for_complete_content)
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     st = time.time()
-    
-#     store_result_to_ES("flow_text_gangdu")
-
-    # et = time.time()
-    # print "total running time: ", et - st
-
-    # didi   64s
-    # maoyi  180s
-    # gangdu 209s
+    store_result_to_ES("flow_text_gangdu")

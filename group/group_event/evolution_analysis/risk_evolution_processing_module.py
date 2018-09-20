@@ -13,17 +13,16 @@ from get_user_name_type_by_uid import get_name_and_type
 
 # global variables
 time_slice = 21600  # 21600s = 6h, interval length for X axis   86400 = 1 day
-es = Elasticsearch(['219.224.134.226:9207'])
+es = Elasticsearch(['219.224.134.226:9209'])
 parameter_for_heat_index = [0.2, 0.4, 0.4]   # paras can be changed
 parameter_for_risk_index = [0.2, 0.4, 0.4]
+timeout = 15
 
 
 def initialization(event_name):
     '''
-    get start timestamp and end timestamp of the whole event
+    get start timestamp and end timestamp
     used as global vars
-    :param event_name: event name
-    :return: none
     '''
 
     global start_timestamp
@@ -54,42 +53,34 @@ def initialization(event_name):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
     start_timestamp = response["aggregations"]["time_slice"]["buckets"][0]["key"]
     end_timestamp = response["aggregations"]["time_slice"]["buckets"][-1]["key"]
 
 
 def heat_curve(event_name):
-    '''
-    calculate values for heat curve
-    include datetime(whole X axis), origin, comment, forward and heat index(each interval)
-
-    :param event_name: name of event
-
-    :return: heat_index_list: a list containing heat index for each interval
-             datetime_list: a list containing datetime for each interval
-             result_list_for_frontend: a list containing origin, comment, forward and heat index for each interval
-    '''
 
     # local vars
     field_name = "message_type"
 
-    # get num of origin, comment & forward in each interval
+    # get query results
     origin_response = query(event_name, field_name, 1)
     comment_response = query(event_name, field_name, 2)
     forward_response = query(event_name, field_name, 3)
+
+    # get elements for X axis (in list)
+    datetime_list = construct_X_axis(origin_response)
+
+    # get statistical data for origin, comment & forward (in list)
     origin_count_list = count_in_each_interval(origin_response)
     comment_count_list = count_in_each_interval(comment_response)
     forward_count_list = count_in_each_interval(forward_response)
 
-    # get elements for X axis
-    datetime_list = construct_X_axis(origin_response)
-
-    # get heat indices
+    # get heat index (in list)
     heat_index_list = calculate_heat_index(origin_count_list, comment_count_list,
                                            forward_count_list, parameter_for_heat_index)
 
-    # generate heat curve result, including heat index, origin, comment and forward
     result_list_for_frontend = generate_heat_result_list(heat_index_list, origin_count_list,
                                                     comment_count_list, forward_count_list)
 
@@ -97,27 +88,16 @@ def heat_curve(event_name):
 
 
 def emotion_curve(event_name):
-    '''
-    calculate values for emotion curve
-    include positive percent, negative percent and proportion: negative/positive
-
-    :param event_name: name of event
-
-    :return: negative_percentage: a list containing negative percent value for each interval
-             result_list_for_frontend: a list containing negative percent, positive percent and proportion
-    '''
 
     # local vars
     field_name = "sentiment"
 
-    # get num of positive and negative posts in each interval
     positive_response = query(event_name, field_name, 1)
     negative_response = query(event_name, field_name, 3)
+
     positive_count_list = count_in_each_interval(positive_response)
     negative_count_list = count_in_each_interval(negative_response)
 
-    # calculate positive percent, negative percent and proportion
-    # negative percent = negative / (negative + positive)
     positive_percentage, negative_percentage, vertical_axis = \
         calculate_percentage(positive_count_list, negative_count_list)
 
@@ -128,19 +108,8 @@ def emotion_curve(event_name):
 
 
 def risk_evolution_curve(event_name, heat_index_list, negative_percentage):
-    '''
-    calculate values for risk evolution curve
-    include risk index, heat risk, emotion risk and sensitive risk
 
-    :param event_name: name of event
-    :param heat_index_list: a list containing heat index for each interval
-    :param negative_percentage: a list containing negative percent for each interval
-
-    :return: result_list_for_frontend: a list containing risk index, heat risk,
-             emotion risk and sensitive risk for each interval
-    '''
-
-    # get avg sensitive value in each interval
+    # get max sensitive value in each interval
     query_body = {
         "size": 0,
         "aggs": {
@@ -167,14 +136,14 @@ def risk_evolution_curve(event_name, heat_index_list, negative_percentage):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
 
     sensitive_value_list = get_sensitive_value(response)
 
     risk_index_list = calculate_risk_index(heat_index_list, negative_percentage,
-                    sensitive_value_list, parameter_for_risk_index)
+                                           sensitive_value_list, parameter_for_risk_index)
 
-    # heat risk = heat index, emotion risk = negative percent
     result_list_for_frontend = generate_risk_result_list(risk_index_list, heat_index_list,
                                                          negative_percentage, sensitive_value_list)
 
@@ -182,13 +151,6 @@ def risk_evolution_curve(event_name, heat_index_list, negative_percentage):
 
 
 def key_user_identification(event_name):
-    '''
-    等待uid映射表
-
-    :param event_name: name of event
-
-    :return:
-    '''
 
     query_body = {
         "size": 0,
@@ -216,7 +178,7 @@ def key_user_identification(event_name):
                     "key_users": {
                         "terms": {
                             "field": "root_uid",
-                            "size": 3
+                            "size": 10
                         }
                     }
                 }
@@ -226,7 +188,8 @@ def key_user_identification(event_name):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
 
     vertical_axis_list, key_users_list = get_vertical_axis_and_key_users(response)
 
@@ -257,7 +220,7 @@ def risk_details(event_name):
                     "key_users": {
                         "terms": {
                             "field": "mid",
-                            "size": 30   # 返回的30各帖子不一定是原创 取决于ES查询的返回机制
+                            "size": 30
                         }
                     }
                 }
@@ -267,7 +230,8 @@ def risk_details(event_name):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
 
     hot_post_list = get_hot_posts(event_name, response)
 
@@ -307,13 +271,14 @@ def query(event_name, field_name, value):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
 
     return response
 
 
 def construct_X_axis(origin_response):
-    # comment and forward must happen after origin
+    # 评论和转发一定发生在原创之后
     x_axis = []
     buckets = origin_response["aggregations"]["time_slice"]["buckets"]
 
@@ -333,7 +298,6 @@ def timestamp_to_date(unix_time):
 
 
 def count_in_each_interval(response):
-    # get doc count
     counts = []
     buckets = response["aggregations"]["time_slice"]["buckets"]
 
@@ -426,7 +390,6 @@ def get_sensitive_value(sensitive_response):
     sensitive_value_list = []
     buckets = sensitive_response["aggregations"]["time_slice"]["buckets"]
 
-    # 均值很小 0.1 四舍五入后都是0和1
     for i in range(len(buckets)):
         if buckets[i]["sensitive"]["value"] != None:
             sensitive_value_list.append(int(round(buckets[i]["sensitive"]["value"])))
@@ -443,12 +406,10 @@ def get_sensitive_value(sensitive_response):
 
 def calculate_risk_index(heat_list, emotion_list, sensitive_list, parameter_list):
     '''
-    calculates risk index
-
+    This function calculates risk index
     :param heat_list: heat index, range 0-100
     :param emotion_list: negative percent
     :param sensitive_list: sensitive value, range 0-100
-
     :return: risk index list, range 0-100
     '''
     temp = []
@@ -479,7 +440,6 @@ def generate_risk_result_list(risk, heat, emotion, sensitive):
 
 def get_vertical_axis_and_key_users(response):
     # 竖轴值表示某一时间段内 转发评论数的最大值 该值对应的用户是key_users列表中的第一个值
-    # 需要改成 按评论转发量排序 返回100个uid，从这100个uid里找出第一个出现的媒体，大V和普通用户
     key_users = []
     vertical_axis = []
     buckets = response["aggregations"]["time_slice"]["buckets"]
@@ -516,23 +476,24 @@ def get_hot_posts(event_name, response):
     buckets = response["aggregations"]["time_slice"]["buckets"]   # len = 137
 
     for i in range(len(buckets)):
-        temp = []
-        for j in range(len(buckets[i]["key_users"]["buckets"])):
-            d = {}
-            num_of_comment = query_for_hot_posts(event_name, 2, buckets[i]["key_users"] \
-                                                ["buckets"][j]["key"], buckets[i]["key"])
-            num_of_forward = query_for_hot_posts(event_name, 3, buckets[i]["key_users"] \
-                                                ["buckets"][j]["key"], buckets[i]["key"])
-            total = num_of_comment + num_of_forward
-            mid = buckets[i]["key_users"]["buckets"][j]["key"]
-            d["mid"] = mid
-            d["total"] = total
-            d["comment"] = num_of_comment
-            d["forward"] = num_of_forward
-            d["timestamp"] = buckets[i]["key"]
-            d["type"] = event_name
-            temp.append(d)
-        result_list.append(temp)
+
+            temp = []
+            for j in range(len(buckets[i]["key_users"]["buckets"])):
+                d = {}
+                num_of_comment = query_for_hot_posts(event_name, 2, buckets[i]["key_users"] \
+                                                     ["buckets"][j]["key"], buckets[i]["key"])
+                num_of_forward = query_for_hot_posts(event_name, 3, buckets[i]["key_users"] \
+                                                     ["buckets"][j]["key"], buckets[i]["key"])
+                total = num_of_comment + num_of_forward
+                mid = buckets[i]["key_users"]["buckets"][j]["key"]
+                d["mid"] = mid
+                d["total"] = total
+                d["comment"] = num_of_comment
+                d["forward"] = num_of_forward
+                d["timestamp"] = buckets[i]["key"]
+                d["type"] = event_name
+                temp.append(d)
+            result_list.append(temp)
 
     return result_list
 
@@ -572,7 +533,8 @@ def query_for_hot_posts(event_name, message_type, mid, start_timestamp):
     response = es.search(
         index = event_name,
         doc_type = "text",
-        body = query_body)
+        body = query_body,
+        timeout = timeout)
 
     return response["hits"]["total"]
 
@@ -620,6 +582,6 @@ def processing_flow(event_name):   # main function that invokes other functions
     return table_for_curve, hot_post_list
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     processing_flow("flow_text_maoyi")
+    processing_flow("flow_text_gangdu")
