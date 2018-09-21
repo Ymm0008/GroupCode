@@ -26,7 +26,7 @@ mod = Blueprint('sensing', __name__, url_prefix='/event')   # url_prefix = '/tes
 def index():
     """返回页面
     """
-    return render_template('index_query.html')
+    return render_template('index_query.html')  
 
 
 # 按照地点、关键词查询，按照热度、时间排序

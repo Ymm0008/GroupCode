@@ -15,6 +15,7 @@ sys.setdefaultencoding("utf-8")
 
 # Blueprint 模块化管理程序路由的功能
 mod = Blueprint('opinion_cluster', __name__, url_prefix='/opinion')   # url_prefix = '/test'  增加相对路径的前缀
+<<<<<<< HEAD
  
 @mod.route('/')
 def index():
@@ -249,12 +250,28 @@ def save_search_data():
 
 #     return json.dumps(result)
 
+=======
+
+@mod.route('/set_page', methods=['POST']) 
+def set_page(list1, page_number, page_size):              #分页函数 list1指等待被分页的列表
+    start_from = (int(page_number) - 1) * int(page_size)
+    end_at = int(start_from) + int(page_size)
+    return list1[start_from:end_at]
+@mod.route('/datetime', methods=['POST']) 
+def ts2datetime_full(ts):                                 #时间戳的转换函数，可以把时间戳转换为时间
+    return time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(ts))
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
 #接口代码
 #事件聚类展示接口
 @mod.route('/event_cluster', methods=['POST']) 
 def event_cluster():
     term = request.get_json()
+<<<<<<< HEAD
     # keyword_dict, rep_text, times = event_cluster()
+=======
+    event_name = request.args.get('event_name')
+
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
     keywords = dict()
     query_body = {  
             'query':{
@@ -268,26 +285,42 @@ def event_cluster():
     # for item in result:
     print result[0]['_source']
     for i in range(5):
+<<<<<<< HEAD
         print type(result[0]['_source']['cluster_keywords_dict'])
         print eval(result[0]['_source']['cluster_keywords_dict'])
         item = eval(result[0]['_source']['cluster_keywords_dict'])
         keywords[i] = item[str(i)]
+=======
+        # print type(result[0]['_source']['cluster_keywords_dict'])
+        # print eval(result[0]['_source']['cluster_keywords_dict'])
+        item = eval(result[0]['_source']['cluster_keywords_dict'])
+        keywords[i] = {'keyword':item[str(i)][0].split(','),'val':item[str(i)][1]}
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
 
     return json.dumps(keywords)
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
 #聚类关键词和代表性文本联动接口
 @mod.route('/rep_text', methods=['POST']) 
 def rep_text():
     term = request.get_json()
+<<<<<<< HEAD
     # keyword_dict, rep_text, times = event_cluster()
+=======
+    event_name = request.args.get('event_name')
+
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
     
     keywords = dict()
     query_body = {  
             'query':{
                 'match_all':{}            
                 },
+<<<<<<< HEAD
             '_source':'cluster_keywords_dict'
                     
         }          
@@ -297,6 +330,11 @@ def rep_text():
     # print result[0]['_source']
     # print type(result[0]['_source']['cluster_keywords_dict'])
     # print eval(result[0]['_source']['cluster_keywords_dict'])
+=======
+            '_source':'cluster_keywords_dict'           
+        }          
+    result = es.search(index = 'opinion_cluster', doc_type='event1', body=query_body)['hits']['hits']
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
     item = eval(result[0]['_source']['cluster_keywords_dict'])
     for i in range(5):
         keywords[i] = item[str(i)][0]
@@ -309,6 +347,7 @@ def rep_text():
                     
         }          
     result = es.search(index = 'opinion_cluster', doc_type='event1', body=query_body)['hits']['hits']
+<<<<<<< HEAD
     # print result
     # for item in result:
     # print result[0]['_source']
@@ -324,6 +363,43 @@ def rep_text():
     	cluster = keywords[i]
         # print items[str(i)] 
     	keyword_text[cluster] = items[str(i)]
+=======
+    print type(result[0]['_source']['rep_text_dict'])
+    items = eval(result[0]['_source']['rep_text_dict'])
+
+    rep_keyword_text = []
+    for i in range(5):
+        keyword_text = dict()
+    	cluster = keywords[i]
+        midlist = []
+        for j in range(len(items[str(i)])):
+            midlist.append(items[str(i)][j]['mid'])
+        print midlist
+        text_list = []
+        for k in range(len(midlist)):
+            query_body = {   
+                'query':{
+                    'bool':{
+                        'must':
+                            {'term':{'mid': midlist[k]}}                            
+                    }
+                },
+                'size': 1        
+            }          
+            result = es.search(index = 'flow_text_gangdu', doc_type='text', body=query_body)['hits']['hits']
+            result = result[0]['_source']
+            print result
+            rep_text = dict()
+            print result['text'].encode('utf-8')
+            rep_text['text'] = result['text']
+            timestamp = ts2datetime_full(result['timestamp'])
+            rep_text['timestamp'] = timestamp
+            rep_text['uid'] = result['uid']
+            rep_text['comment'] = result['comment']
+            rep_text['retweet'] = result['retweeted']
+            text_list.append(rep_text)
+            keyword_text[cluster]=text_list
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
         rep_keyword_text.append(keyword_text)
     # print rep_keyword_text
     return json.dumps(rep_keyword_text)
@@ -334,6 +410,7 @@ def rep_text():
 @mod.route('/hot_rank', methods=['POST']) 
 def hot_rank():
     term = request.get_json()
+<<<<<<< HEAD
 
     if term.has_key('get_data_num'):
     	get_data_num = term['get_data_num']
@@ -342,11 +419,38 @@ def hot_rank():
     list_of_original_blog = weibo_rank(get_data_num)
     hot_rank_list = []
     for i in range(len(list_of_original_blog)):
+=======
+    event_name = request.args.get('event_name')
+    index_all = request.args.get('index_all')
+    
+    # if term.has_key('get_data_num'):
+    # 	get_data_num = term['get_data_num']
+    # else:
+    # 	get_data_num = 100
+    # list_of_original_blog = weibo_rank(get_data_num)
+    query_body = {  
+            'query':{
+                'match_all':{}            
+                },
+            '_source':'hot_rank_dict'
+                    
+        }          
+    result = es.search(index = 'opinion_cluster', doc_type='event1', body=query_body)['hits']['hits']
+     
+    items = eval(result[0]['_source']['hot_rank_dict'])
+    
+    hot_rank_list = []
+    for i in range(len(items)):
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
         query_body = {   
             'query':{
                 'bool':{
                     'must':
+<<<<<<< HEAD
                         {'term':{'mid': list_of_original_blog[i]['oringinal_blog']}}      #注意此用法                      
+=======
+                        {'term':{'mid': items[i]['oringinal_blog']}}                            
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
                 }
             },
             'size': 1        
@@ -358,9 +462,17 @@ def hot_rank():
         hot_rank_text = dict()
         print result['text'].encode('utf-8')
         hot_rank_text['text'] = result['text']
+<<<<<<< HEAD
         hot_rank_text['timestamp'] = result['timestamp']
         hot_rank_text['uid'] = list_of_original_blog[i]['uid']
         hot_rank_text['comment'] = list_of_original_blog[i]['comment']
         hot_rank_text['retweet'] = list_of_original_blog[i]['retweet']
+=======
+        timestamp = ts2datetime_full(result['timestamp'])
+        hot_rank_text['timestamp'] = timestamp
+        hot_rank_text['uid'] = items[i]['uid']
+        hot_rank_text['comment'] = items[i]['comment']
+        hot_rank_text['retweet'] = items[i]['retweet']
+>>>>>>> 7827330b18ae802916ec7f3b0e5f55b0531c21ec
         hot_rank_list.append(hot_rank_text)
     return json.dumps(hot_rank_list)
