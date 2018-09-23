@@ -7,7 +7,7 @@ import time
 from flask import Blueprint, render_template, request
 
 from elasticsearch import Elasticsearch
-es = Elasticsearch('219.224.134.226:9209', timeout=600)
+es = Elasticsearch('219.224.134.226:9207', timeout=600)
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -27,7 +27,7 @@ def influence_rank_of_men():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    list_of_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
+    list_of_men = es.get(index = 'network_analysis', doc_type = event_name, id = date,\
                         _source = 'man_rank')['_source']['man_rank']
     dic_of_men = dict()
     dic_of_men['total_num'] = len(list_of_men)
@@ -40,7 +40,7 @@ def influence_rank_of_media():
     date = request.args.get('date')
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
-    list_of_media = es.get(index = 'network_analysis1', doc_type = event_name, \
+    list_of_media = es.get(index = 'network_analysis', doc_type = event_name, \
                             id = date, _source = 'media_rank')['_source']['media_rank']
     dic_of_media = dict()
     dic_of_media['total_num'] = len(list_of_media)
@@ -54,7 +54,7 @@ def representitive_blog_of_men():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
     targeted_uid = request.args.get('targeted_uid')
-    representitive_blog_of_men = es.get(index = 'network_analysis1', doc_type = event_name,\
+    representitive_blog_of_men = es.get(index = 'network_analysis', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_men')\
                                         ['_source']['representitive_blog_of_men']
     if targeted_uid =='':
@@ -83,7 +83,7 @@ def representitive_blog_of_media():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')
     targeted_uid = request.args.get('targeted_uid')
-    representitive_blog_of_media = es.get(index = 'network_analysis1', doc_type = event_name,\
+    representitive_blog_of_media = es.get(index = 'network_analysis', doc_type = event_name,\
                                         id = date, _source = 'representitive_blog_of_media')\
                                         ['_source']['representitive_blog_of_media']
     if targeted_uid =='':
@@ -111,7 +111,7 @@ def related_men():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size')    
     targeted_uid = request.args.get('targeted_uid')
-    related_men = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
+    related_men = es.get(index = 'network_analysis', doc_type = event_name, id = date,\
                         _source = 'related_men')['_source']['related_men']
     if targeted_uid =='':
         dic_of_related_men = dict()
@@ -140,7 +140,7 @@ def representitive_blog_of_related_men():
     page_number = request.args.get('page_number')
     page_size = request.args.get('page_size') 
     targeted_uid = request.args.get('targeted_uid')
-    representitive_blog_of_related_men = es.get(index = 'network_analysis1', doc_type = event_name,\
+    representitive_blog_of_related_men = es.get(index = 'network_analysis', doc_type = event_name,\
                                                 id = date, _source = 'representitive_blog_of_related_men')\
                                                 ['_source']['representitive_blog_of_related_men']
     if targeted_uid =='':
@@ -167,6 +167,6 @@ def representitive_blog_of_related_men():
 def data_for_graph():
     event_name = request.args.get('event_name')
     date = request.args.get('date')
-    data_for_graph = es.get(index = 'network_analysis1', doc_type = event_name, id = date,\
+    data_for_graph = es.get(index = 'network_analysis', doc_type = event_name, id = date,\
                         _source = 'content_for_graph')['_source']['content_for_graph']
     return json.dumps(data_for_graph)
