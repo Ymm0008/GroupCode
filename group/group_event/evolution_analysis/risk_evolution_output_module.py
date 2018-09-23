@@ -4,9 +4,9 @@ import json
 from elasticsearch import Elasticsearch
 
 # global vars
-index_name_for_curve = "risk_evolution_curve_result"
-index_name_for_content = "risk_evolution_content_result"
-es_for_output = Elasticsearch(['219.224.134.226:9207'])
+index_name_for_curve = "risk_evolution_curve_result_temp"
+index_name_for_content = "risk_evolution_content_result_temp"
+es_for_output = Elasticsearch(['219.224.134.226:9209'])
 
 
 def extract_curve_result(index_name, event_name):
@@ -33,7 +33,7 @@ def extract_curve_result(index_name, event_name):
             doc_type = event_name,
             body = query_body)
         d1 = {}
-        d1["datetime"] = response["hits"]["hits"][0]["_source"]["datetime"]
+        d1["timestamp"] = response["hits"]["hits"][0]["_source"]["timestamp"]
 
         d1["heat_index"] = response["hits"]["hits"][0]["_source"]["heat_index"]
         d1["total_origin"] = response["hits"]["hits"][0]["_source"]["total_origin"]
@@ -45,7 +45,7 @@ def extract_curve_result(index_name, event_name):
         d1["positive_percent"] = response["hits"]["hits"][0]["_source"]["positive_percent"]
 
         d2 = {}
-        d2["datetime"] = response["hits"]["hits"][0]["_source"]["datetime"]
+        d2["timestamp"] = response["hits"]["hits"][0]["_source"]["timestamp"]
 
         d2["risk_index"] = response["hits"]["hits"][0]["_source"]["risk_index"]
         d2["heat_risk"] = response["hits"]["hits"][0]["_source"]["heat_risk"]
@@ -135,6 +135,7 @@ def curve_output_for_frontend(event_name):   # 只调用一次
     d = {}
     d["evolution_and_key_user"] = evolution_and_key_user
     d["heat_and_emotion"] = heat_and_emotion
+    # print d
 
     return json.dumps(d)
 
@@ -151,13 +152,11 @@ def content_output_for_frontend(event_name, timestamp, page_num, page_size):   #
 
     temp_list = content_result_list[start_from:end_at]
 
-    result_list = []
     d = {}
-    d["total"] = len(temp_list)
+    d["total"] = len(content_result_list)
     d["data"] = temp_list
-    result_list.append(d)
 
-    return result_list
+    return d
 
 
 if __name__ == '__main__':
@@ -167,5 +166,5 @@ if __name__ == '__main__':
 
     a = curve_output_for_frontend("flow_text_gangdu")
     c = content_output_for_frontend("flow_text_gangdu", 1523966400, page_num, page_size)
-    # print a
+    print a
     # print c
