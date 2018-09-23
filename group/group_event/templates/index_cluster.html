@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!--<link rel="stylesheet" type="text/css" href="./static/css/style.css">-->
+    <title>Flask demo</title>
+</head>
+<body>
+<!--提交微博id的表单-->
+<div>
+    <button id="post_btn1">事件聚类结果</button>
+	<button id="post_btn2">聚类关键词和文本联动结果</button>
+	<button id="post_btn3">热帖排行结果</button>
+
+</div>
+<div id="box">
+    <p class="post1"> </p>
+	<p class="post2"> </p>
+	<p class="post3"> </p>
+	
+    <img src="" alt="">
+</div>
+
+
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    // # uid： 2286908003
+
+	//封装的ajax请求的方法
+    var public_ajax={
+        // post 请求 ，适合前端 往后台 传信息量多的东西
+        call_request_post:function(ajax_method, url, data, callback){
+            $.ajax({
+                type: ajax_method,
+                url: url,
+                async: true,
+                //timeout:300,
+                data: JSON.stringify(data),//传参数
+                contentType: 'application/json',
+                dataType: "json",
+                success: callback,
+                error: function (xhr, textStatus, errorThrown) {
+                    //请求失败执行的函数
+                    console.log("请求失败", textStatus, errorThrown);
+                },
+                global: false//是否触发全局请求,需要触发就是true,不需要false
+            });
+        }
+    };
+
+    
+    // 事件聚类列表  ---------
+    $('#post_btn1').on('click',function(){
+        var post_url = '/opinion/event_cluster';  
+        var postData = {}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post1').html(JSON.stringify(data));
+    }
+
+	 // 文本联动交互  ---------
+    $('#post_btn2').on('click',function(){
+        var post_url = '/opinion/rep_text'; 
+        var postData = {}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post2').html(JSON.stringify(data));
+    }
+
+	 // 热帖排行  ---------
+    $('#post_btn3').on('click',function(){
+        var post_url = '/opinion/hot_rank';  
+        var postData = {'get_data_num':30}
+        
+        public_ajax.call_request_post('POST', post_url, postData, post_function); //前端 发起请求
+    })
+    function post_function(data){
+        $('#box p.post3').html(JSON.stringify(data));
+    }
+	
+	
+	
+</script>
+</body>
+</html>
