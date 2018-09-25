@@ -8,13 +8,16 @@ from collections import Counter
 from flask import Blueprint, render_template, request
 
 from elasticsearch import Elasticsearch
-from group_event.global_utils import es_sensor
+from group_event.global_utils import es_sensor, es_monitor
 from group_event.global_utils import index_content_sensing, type_content_sensing, index_monitor_task,type_monitor_task
-from group_event.time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts, ts2datetime_full
+from group_event.global_utils import index_weixin_name, type_weixin_name, index_weibo_name
+from group_event.time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts, ts2datetime_full, date2ts
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
+sys.path.append("../")
+from crawler.crawler_stat import channel_count, get_data2es
 
 AB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../public/')
 sys.path.append(AB_PATH)
@@ -26,7 +29,7 @@ mod = Blueprint('sensing', __name__, url_prefix='/event')   # url_prefix = '/tes
 def index():
     """返回页面
     """
-    return render_template('index_query.html')  
+    return render_template('index_query.html')
 
 
 # 按照地点、关键词查询，按照热度、时间排序
@@ -117,8 +120,7 @@ def query_monitor(keywords, user, from_ts, to_ts):
 	    "size": 20000
 	}
 
-	results = es_sensor.search(index=index_monitor_task, doc_type=type_monitor_task, body=query_body)["hits"]["hits"]   
-
+	results = es_monitor.search(index=index_monitor_task, doc_type=type_monitor_task, body=query_body)["hits"]["hits"]   
 
 	return results
 
@@ -160,7 +162,6 @@ def sensing_calculate():
 
     results, count_mid, province_dict, city_dict = query_sensing(keywords=keywords, place=place, sort=sort, from_ts=from_ts, to_ts=to_ts)
 
-
     content = []
     for item in results:
     	item_dict = {}
@@ -169,7 +170,7 @@ def sensing_calculate():
         item_dict['initiator'] = item["_source"]['initiator']
         item_dict['heat'] = item["_source"]['heat']
         item_dict['geo'] = item["_source"]['geo']
-        item_dict['keywords_string'] = item["_source"]['keywords_string']
+        item_dict['keywords'] = item["_source"]['keywords']
         item_dict['status'] = item["_source"]['status']
         content.append(item_dict)
 
@@ -183,7 +184,6 @@ def sensing_calculate():
     print count_mid, province_dict, city_dict
 
     return json.dumps(return_results)
-
 
 
 # 地图交互
@@ -205,25 +205,24 @@ def map_calculate():
     	place = term['place']
     else:
     	place = '*'
-    if term.has_key('from_ts'):
-    	from_ts = datehour2ts(term['from_ts'])
-    else:
-    	from_ts = time.time()
     if term.has_key('to_ts'):
-    	to_ts = datehour2ts(term['to_ts'])
+        to_ts = datehour2ts(term['to_ts'])
     else:
-	    if term.has_key('to_num'):
-	    	to_num = term['to_num']
-	    else:
-	    	to_num = 180
-	    to_ts = from_ts-to_num*3600*24
+        to_ts = time.time()
+    if term.has_key('from_ts'):
+        from_ts = datehour2ts(term['from_ts'])
+    else:
+        if term.has_key('to_num'):
+            to_num = term['to_num']
+        else:
+            to_num = 180
+        from_ts = to_ts-to_num*3600*24
     if term.has_key('page'):
 		page = term['page']
     else:
     	page = 1
 
     results, count_mid, province_dict, city_dict = query_sensing(keywords=keywords, place=place, sort=sort, from_ts=from_ts, to_ts=to_ts)
-
 
     content = []
     for item in results:
@@ -233,7 +232,7 @@ def map_calculate():
         item_dict['initiator'] = item["_source"]['initiator']
         item_dict['heat'] = item["_source"]['heat']
         item_dict['geo'] = item["_source"]['geo']
-        item_dict['keywords_string'] = item["_source"]['keywords_string']
+        item_dict['keywords'] = item["_source"]['keywords']
         item_dict['status'] = item["_source"]['status']
         content.append(item_dict)
 
@@ -268,11 +267,29 @@ def monitor_insert():
     item['create_at'] = time.time()
     item['create_user'] = 'root'
     item['processing_status'] = 'no'
-    item['event_detail'] = 'yes'
+
+
+    keywords = ' '.join(term['keywords'].split(','))
+    start_time = ts2datetime(date2ts(term['from_date']))
+    end_time = ts2datetime(date2ts(term['to_date']))
+
+    index_weixin_name = index_weixin_name
+    type_weixin_name = term['name']
+    index_weibo_name = index_weibo_name
+    type_weibo_name = term['name']
+    index_baidunews_name = index_baidunews_name
+    type_baidunews_name = term['name']
+
+    weixin_count, baidunews_count, weibo_count =  channel_count(keywords, start_time, end_time)
+    item['weixin_stat'] = weixin_count
+    item['xinwen_stat'] = baidunews_count
+    item['weibo_stat'] = weibo_count
 
     id = item['task_name'] + '_' + ts2datetime_full(item['create_at'])
 
-    es_sensor.index(index=index_monitor_task, doc_type=type_monitor_task, id=id, body=item)
+    es_monitor.index(index=index_monitor_task, doc_type=type_monitor_task, id=id, body=item)
+
+    get_data2es(keywords, start_time, end_time, index_weixin_name, type_weixin_name, index_weibo_name, type_weibo_name, index_baidunews_name, type_baidunews_name)
 
     return json.dumps('1')
 
@@ -322,11 +339,16 @@ def monitor_query():
         item_dict['create_at'] = ts2datetime_full(float(item["_source"]['create_at']))
         item_dict['delete'] = item["_source"]['delete']
         item_dict['processing_status'] = item["_source"]['processing_status']
+        item_dict['weixin_stat'] = item["_source"]['weixin_count'] 
+        item_dict['xinwen_stat'] = item["_source"]['baidunews_count'] 
+        item_dict['weibo_stat'] = item["_source"]['weibo_count'] 
+
         content.append(item_dict)
 
     return_results = dict()
     return_results['page_count'] = len(results)
     return_results['list'] = content[5*(page-1):5*page]
+    
     return json.dumps(return_results)
 
 
@@ -339,8 +361,7 @@ def monitor_delete():
     content = request.get_json()
     id = content['id']
 
-    es_sensor.delete(index=index_monitor_task, doc_type=type_monitor_task, id=id)
+    es_monitor.delete(index=index_monitor_task, doc_type=type_monitor_task, id=id)
 
     return json.dumps('1')
 
-# 

@@ -6,7 +6,6 @@ import time
 import json
 import math
 import numpy as np
-from elasticsearch import Elasticsearch
 from collections import defaultdict
 
 from text_classify.test_topic import topic_classfiy
@@ -328,7 +327,7 @@ def social_sensing(task_detail):
                 bulk_action = []
 
         if bulk_action:
-            es_sensor.bulk(bulk_action, index=index_content_sensing, doc_type=type_content_sensing, timeout=600)
+            es_sensor.bulk(bulk_action, index=index_content_sensing, doc_type=type_content_sensing)
 
 
     return "1"

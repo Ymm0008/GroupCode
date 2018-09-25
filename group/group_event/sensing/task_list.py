@@ -9,7 +9,10 @@ import json
 import copy
 import os
 
-from social_sensing import social_sensing_task 
+from manual_create_task import create_sensor_task
+from function_sensing_v import social_sensing
+
+
 reload(sys)
 sys.path.append("../")
 from global_utils import es_sensor as es
@@ -18,21 +21,19 @@ from global_utils import index_manage_sensing, type_manage_sensing
 from global_config import S_TYPE,S_DATE
 from time_utils import ts2datetime, datetime2ts, ts2date, ts2datehour, datehour2ts
 
+
+
 def create_task_list():
     # 1. search from manage_sensing_task
     # 2. push to redis list-----task_work
+    
+    create_sensor_task()
 
-    # print start info
-    current_path = os.getcwd()
-    file_path = os.path.join(current_path, 'task_list.py')
     if S_TYPE == 'test':
         now_ts = datetime2ts(S_DATE)
     else:
         now_ts = datehour2ts(ts2datehour(time.time()-3600))
         
-    print_log = " ".join([file_path, "--start:"])
-    print  print_log
-
     query_body = {
         "query":{
             "match_all": {}
@@ -59,6 +60,20 @@ def create_task_list():
             count += 1
 
     print 'task_count_sum:' , count
+
+
+def social_sensing_task():
+    while 1:
+        temp = r.rpop("task_name")
+
+        if not temp:
+            now_date = ts2date(time.time())
+            print 'All tasks Finished:',now_date
+            break  
+            
+        task_detail = json.loads(temp)
+        social_sensing(task_detail)
+        print json.loads(temp)[0],':Finished'
 
 
 if __name__ == "__main__":
